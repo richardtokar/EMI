@@ -1,0 +1,826 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>EMI Cable Challenge</title>
+  <style>
+    :root {
+      --bg: #0b1020;
+      --panel: #111a33;
+      --panel-2: #182647;
+      --text: #ecf4ff;
+      --muted: #9fb2d4;
+      --safe: #43d8a7;
+      --safe-soft: rgba(67, 216, 167, 0.18);
+      --warn: #ff8a66;
+      --warn-soft: rgba(255, 138, 102, 0.18);
+      --focus: #73b4ff;
+      --accent: #7ec5ff;
+      --danger: #ff5e7e;
+      --shadow: 0 14px 36px rgba(0, 0, 0, 0.45);
+      --radius: 18px;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      background:
+        radial-gradient(circle at 20% 10%, #1a2950 0, transparent 40%),
+        radial-gradient(circle at 80% 0%, #12213f 0, transparent 35%),
+        linear-gradient(180deg, #0a1020 0%, #070b16 100%);
+      color: var(--text);
+      display: flex;
+      justify-content: center;
+      padding: 18px;
+    }
+
+    .app {
+      width: min(980px, 100%);
+      background: linear-gradient(180deg, rgba(17, 26, 51, 0.94), rgba(13, 20, 38, 0.96));
+      border: 1px solid rgba(126, 197, 255, 0.2);
+      border-radius: 24px;
+      box-shadow: var(--shadow);
+      padding: 20px;
+    }
+
+    h1 {
+      margin: 0;
+      font-size: clamp(1.8rem, 4vw, 2.5rem);
+      letter-spacing: 0.5px;
+      text-align: center;
+      color: #f4f8ff;
+    }
+
+    .subtitle {
+      margin: 10px 0 14px;
+      text-align: center;
+      color: var(--muted);
+      font-size: clamp(1rem, 2.4vw, 1.15rem);
+    }
+
+    .status-row {
+      display: flex;
+      justify-content: center;
+      gap: 24px;
+      flex-wrap: wrap;
+      margin-bottom: 16px;
+      font-size: 1.1rem;
+      font-weight: 700;
+    }
+
+    .pill {
+      background: rgba(126, 197, 255, 0.1);
+      border: 1px solid rgba(126, 197, 255, 0.35);
+      border-radius: 999px;
+      padding: 7px 14px;
+      min-width: 150px;
+      text-align: center;
+    }
+
+    .game-area {
+      display: grid;
+      gap: 16px;
+    }
+
+    .card-stage {
+      min-height: 250px;
+      border-radius: var(--radius);
+      background: linear-gradient(180deg, var(--panel), var(--panel-2));
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      position: relative;
+      overflow: hidden;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 16px;
+    }
+
+    .scenario-card {
+      width: min(520px, 95%);
+      background: linear-gradient(180deg, rgba(20, 32, 61, 0.98), rgba(11, 18, 36, 0.98));
+      border: 2px solid rgba(126, 197, 255, 0.38);
+      border-radius: 16px;
+      padding: 14px;
+      position: relative;
+      touch-action: none;
+      user-select: none;
+      -webkit-user-select: none;
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+      transition: transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease;
+      cursor: grab;
+    }
+
+    .scenario-card.dragging {
+      cursor: grabbing;
+      transform: scale(1.04);
+      box-shadow: 0 16px 40px rgba(0, 0, 0, 0.55);
+      z-index: 30;
+    }
+
+    .scenario-card.placed {
+      cursor: default;
+    }
+
+    .card-title {
+      margin: 0 0 10px;
+      font-size: 1.12rem;
+      font-weight: 800;
+      text-align: center;
+      color: #dce9ff;
+    }
+
+    .fixture-wrap {
+      position: relative;
+      height: 78px;
+      margin-bottom: 8px;
+    }
+
+    .fixture-label {
+      position: absolute;
+      right: 0;
+      top: -4px;
+      font-size: 0.88rem;
+      font-weight: 800;
+      color: #ffd8bf;
+      background: rgba(255, 138, 102, 0.2);
+      border: 1px solid rgba(255, 138, 102, 0.6);
+      border-radius: 999px;
+      padding: 3px 8px;
+    }
+
+    .fixture {
+      width: 88%;
+      height: 18px;
+      margin: 24px auto 0;
+      background: linear-gradient(90deg, #eef6ff, #cce7ff 30%, #f5fbff 60%, #cae2ff);
+      border-radius: 999px;
+      box-shadow:
+        0 0 12px rgba(191, 230, 255, 0.9),
+        0 0 24px rgba(164, 214, 255, 0.45),
+        inset 0 0 6px rgba(255, 255, 255, 0.95);
+      position: relative;
+      border: 1px solid rgba(240, 250, 255, 0.7);
+    }
+
+    .emi-wave {
+      position: absolute;
+      left: 50%;
+      transform: translateX(-50%);
+      border: 2px solid rgba(124, 196, 255, 0.6);
+      border-top: none;
+      border-radius: 0 0 90px 90px;
+      opacity: 0;
+      animation: emiPulse 2s linear infinite;
+    }
+
+    .emi-wave.w1 { width: 150px; height: 30px; top: 40px; animation-delay: 0s; }
+    .emi-wave.w2 { width: 220px; height: 45px; top: 38px; animation-delay: 0.4s; }
+    .emi-wave.w3 { width: 290px; height: 58px; top: 36px; animation-delay: 0.8s; }
+
+    @keyframes emiPulse {
+      0% { opacity: 0; transform: translateX(-50%) translateY(-8px) scale(0.95); }
+      30% { opacity: 0.75; }
+      100% { opacity: 0; transform: translateX(-50%) translateY(18px) scale(1.06); }
+    }
+
+    .cable-row {
+      margin-top: 28px;
+      position: relative;
+      padding: 14px 6px 4px;
+      min-height: 80px;
+    }
+
+    .cable-label {
+      text-align: center;
+      margin-bottom: 12px;
+      font-size: 1.1rem;
+      font-weight: 800;
+    }
+
+    .cable-line {
+      width: 92%;
+      height: 14px;
+      border-radius: 999px;
+      margin: 0 auto;
+      position: relative;
+    }
+
+    .fiber .cable-line {
+      background: linear-gradient(90deg, #86f2ff, #7ec5ff 40%, #b0dbff 70%, #8af0ff);
+      box-shadow: 0 0 12px rgba(126, 197, 255, 0.9), 0 0 22px rgba(123, 225, 255, 0.5);
+      border: 1px solid rgba(188, 247, 255, 0.8);
+    }
+
+    .fiber .cable-line::after {
+      content: "";
+      position: absolute;
+      inset: -8px;
+      border-radius: 999px;
+      border: 1px dashed rgba(166, 241, 255, 0.55);
+      animation: aura 2.1s ease-in-out infinite;
+    }
+
+    @keyframes aura {
+      0%, 100% { opacity: 0.35; transform: scale(1); }
+      50% { opacity: 0.75; transform: scale(1.03); }
+    }
+
+    .cat6 .cable-line {
+      background: linear-gradient(90deg, #ffc89c, #ff8a66 45%, #ffb580 75%, #ffd7b8);
+      box-shadow: 0 0 10px rgba(255, 138, 102, 0.85);
+      border: 1px solid rgba(255, 196, 165, 0.7);
+      animation: jitter 0.16s infinite alternate;
+    }
+
+    .cat6 .cable-line::before,
+    .cat6 .cable-line::after {
+      content: "";
+      position: absolute;
+      left: 8%;
+      right: 8%;
+      height: 2px;
+      background: rgba(255, 66, 66, 0.9);
+      filter: blur(0.2px);
+    }
+
+    .cat6 .cable-line::before { top: -7px; animation: glitch 0.35s infinite; }
+    .cat6 .cable-line::after { bottom: -8px; animation: glitch 0.45s infinite reverse; }
+
+    @keyframes jitter {
+      0% { transform: translateX(0) rotate(0.1deg); }
+      25% { transform: translateX(-1px) rotate(-0.2deg); }
+      50% { transform: translateX(1px) rotate(0.2deg); }
+      75% { transform: translateX(-0.5px) rotate(-0.15deg); }
+      100% { transform: translateX(0.5px) rotate(0.1deg); }
+    }
+
+    @keyframes glitch {
+      0%, 100% { opacity: 0.25; transform: translateX(0); }
+      50% { opacity: 0.9; transform: translateX(6px); }
+    }
+
+    .badge {
+      margin-top: 10px;
+      font-size: 0.9rem;
+      font-weight: 800;
+      text-align: center;
+      display: inline-block;
+      padding: 4px 10px;
+      border-radius: 999px;
+      position: absolute;
+      left: 50%;
+      transform: translateX(-50%);
+      bottom: -6px;
+    }
+
+    .fiber .badge {
+      color: #dffbff;
+      background: rgba(67, 216, 167, 0.2);
+      border: 1px solid rgba(67, 216, 167, 0.55);
+    }
+
+    .cat6 .badge {
+      color: #fff1e8;
+      background: rgba(255, 94, 126, 0.2);
+      border: 1px solid rgba(255, 132, 132, 0.7);
+    }
+
+    .dropzones {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 14px;
+    }
+
+    .dropzone {
+      border: 2px dashed rgba(255, 255, 255, 0.24);
+      border-radius: var(--radius);
+      min-height: 118px;
+      padding: 14px;
+      background: rgba(10, 14, 27, 0.65);
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      text-align: center;
+      font-size: 1.15rem;
+      font-weight: 800;
+      transition: 0.2s ease;
+    }
+
+    .dropzone small {
+      margin-top: 6px;
+      font-size: 0.85rem;
+      font-weight: 600;
+      color: var(--muted);
+    }
+
+    .dropzone.safe { border-color: rgba(67, 216, 167, 0.45); }
+    .dropzone.warn { border-color: rgba(255, 138, 102, 0.45); }
+
+    .dropzone.hover.safe,
+    .dropzone.selected.safe,
+    .dropzone.correct.safe {
+      background: var(--safe-soft);
+      box-shadow: 0 0 0 3px rgba(67, 216, 167, 0.3), inset 0 0 28px rgba(67, 216, 167, 0.16);
+      border-style: solid;
+    }
+
+    .dropzone.hover.warn,
+    .dropzone.selected.warn,
+    .dropzone.correct.warn {
+      background: var(--warn-soft);
+      box-shadow: 0 0 0 3px rgba(255, 138, 102, 0.35), inset 0 0 28px rgba(255, 138, 102, 0.18);
+      border-style: solid;
+    }
+
+    .dropzone.wrong {
+      border-color: var(--danger);
+      box-shadow: 0 0 0 3px rgba(255, 94, 126, 0.33), inset 0 0 26px rgba(255, 94, 126, 0.13);
+      background: rgba(255, 94, 126, 0.15);
+    }
+
+    .feedback {
+      min-height: 74px;
+      border-radius: 14px;
+      padding: 12px 14px;
+      background: rgba(9, 14, 28, 0.75);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      line-height: 1.4;
+    }
+
+    .feedback strong {
+      display: block;
+      font-size: 1.15rem;
+      margin-bottom: 4px;
+    }
+
+    .feedback.correct strong { color: #73f7bc; }
+    .feedback.incorrect strong { color: #ffa3b6; }
+
+    .actions {
+      display: flex;
+      justify-content: center;
+      margin-top: 4px;
+    }
+
+    button {
+      border: none;
+      border-radius: 12px;
+      font-size: 1.05rem;
+      font-weight: 800;
+      color: #09101f;
+      background: linear-gradient(180deg, #90dbff, #68beff);
+      padding: 12px 24px;
+      cursor: pointer;
+      min-width: 170px;
+      transition: transform 0.12s ease, box-shadow 0.12s ease;
+      box-shadow: 0 8px 18px rgba(78, 157, 224, 0.4);
+    }
+
+    button:disabled {
+      opacity: 0.45;
+      cursor: not-allowed;
+      transform: none;
+      box-shadow: none;
+    }
+
+    button:not(:disabled):active {
+      transform: translateY(1px) scale(0.99);
+    }
+
+    .summary {
+      border-radius: var(--radius);
+      padding: 20px;
+      background: linear-gradient(180deg, rgba(17, 28, 57, 0.94), rgba(10, 17, 32, 0.95));
+      border: 1px solid rgba(126, 197, 255, 0.35);
+      text-align: center;
+      display: grid;
+      gap: 14px;
+    }
+
+    .summary h2 {
+      margin: 0;
+      font-size: clamp(1.4rem, 3.2vw, 2rem);
+    }
+
+    .memory-box {
+      text-align: left;
+      margin: 0 auto;
+      max-width: 680px;
+      background: rgba(8, 12, 25, 0.7);
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      border-radius: 12px;
+      padding: 14px;
+      line-height: 1.5;
+    }
+
+    .memory-box p { margin: 8px 0; }
+
+    .hidden { display: none !important; }
+
+    @media (max-width: 760px) {
+      .dropzones { grid-template-columns: 1fr; }
+      .scenario-card { width: min(96%, 560px); }
+      .card-stage { min-height: 272px; }
+    }
+  </style>
+</head>
+<body>
+  <main class="app" aria-live="polite">
+    <h1>EMI Cable Challenge</h1>
+    <p class="subtitle">Drag the scenario to the correct outcome.</p>
+
+    <div class="status-row">
+      <div class="pill" id="roundStatus">Round 1 of 6</div>
+      <div class="pill" id="scoreStatus">Score: 0</div>
+    </div>
+
+    <section id="gameSection" class="game-area">
+      <div class="card-stage" id="cardStage"></div>
+
+      <div class="dropzones">
+        <div class="dropzone safe" id="zoneNoEffect" data-zone="noEffect" role="button" tabindex="0" aria-label="No adverse effect drop zone">
+          No adverse effect
+          <small>Calm, stable connection</small>
+        </div>
+        <div class="dropzone warn" id="zonePoorPerformance" data-zone="poorPerformance" role="button" tabindex="0" aria-label="Poor network performance drop zone">
+          Poor network performance
+          <small>Signal disruption and issues</small>
+        </div>
+      </div>
+
+      <div id="feedback" class="feedback">Place the scenario card into the correct outcome zone.</div>
+
+      <div class="actions">
+        <button id="nextBtn" class="hidden" type="button">Next Round</button>
+      </div>
+    </section>
+
+    <section id="summarySection" class="summary hidden">
+      <h2 id="finalScoreText">You scored 0 out of 6</h2>
+      <div class="memory-box">
+        <p><strong>Remember this EMI rule:</strong></p>
+        <p>• Fiber Optic + EMI from fluorescent lighting = <strong>No adverse effect</strong>.</p>
+        <p>• Cat 6 UTP + EMI from fluorescent lighting = <strong>Poor network performance</strong>.</p>
+        <p>Fiber uses light; copper cabling can be disrupted by EMI.</p>
+      </div>
+      <div class="actions">
+        <button id="playAgainBtn" type="button">Play Again</button>
+      </div>
+    </section>
+  </main>
+
+  <script>
+    // -----------------------------
+    // data setup
+    // -----------------------------
+    const TOTAL_ROUNDS = 6;
+
+    const scenarioTemplates = [
+      {
+        type: "fiber",
+        cableLabel: "Fiber Optic",
+        badgeText: "EMI Resistant",
+        correctZone: "noEffect",
+        explanation:
+          "Fiber optic cable carries data as light instead of electrical signals, so EMI from nearby fluorescent lighting does not interfere with the connection."
+      },
+      {
+        type: "cat6",
+        cableLabel: "Cat 6 UTP",
+        badgeText: "EMI Vulnerable",
+        correctZone: "poorPerformance",
+        explanation:
+          "Cat 6 UTP uses copper conductors, so EMI from nearby fluorescent lighting can interfere with the signal and cause poor network performance."
+      }
+    ];
+
+    const roundStatus = document.getElementById("roundStatus");
+    const scoreStatus = document.getElementById("scoreStatus");
+    const cardStage = document.getElementById("cardStage");
+    const feedback = document.getElementById("feedback");
+    const nextBtn = document.getElementById("nextBtn");
+    const gameSection = document.getElementById("gameSection");
+    const summarySection = document.getElementById("summarySection");
+    const finalScoreText = document.getElementById("finalScoreText");
+    const playAgainBtn = document.getElementById("playAgainBtn");
+    const dropzones = Array.from(document.querySelectorAll(".dropzone"));
+
+    let rounds = [];
+    let currentRoundIndex = 0;
+    let score = 0;
+    let cardElement = null;
+    let roundLocked = false;
+    let selectedForTapPlacement = false;
+    let dragState = {
+      active: false,
+      pointerId: null,
+      startX: 0,
+      startY: 0,
+      originLeft: 0,
+      originTop: 0,
+      currentLeft: 0,
+      currentTop: 0,
+      moved: false
+    };
+
+    function shuffle(array) {
+      for (let i = array.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [array[i], array[j]] = [array[j], array[i]];
+      }
+      return array;
+    }
+
+    function buildRounds() {
+      const base = [];
+      for (let i = 0; i < TOTAL_ROUNDS / 2; i++) {
+        base.push({ ...scenarioTemplates[0] }, { ...scenarioTemplates[1] });
+      }
+      rounds = shuffle(base);
+    }
+
+    // -----------------------------
+    // rendering
+    // -----------------------------
+    function renderRound() {
+      roundLocked = false;
+      selectedForTapPlacement = false;
+      clearZoneStates();
+      nextBtn.classList.add("hidden");
+
+      const scenario = rounds[currentRoundIndex];
+      roundStatus.textContent = `Round ${currentRoundIndex + 1} of ${TOTAL_ROUNDS}`;
+      scoreStatus.textContent = `Score: ${score}`;
+      feedback.className = "feedback";
+      feedback.textContent = "Place the scenario card into the correct outcome zone.";
+
+      cardStage.innerHTML = "";
+
+      cardElement = document.createElement("article");
+      cardElement.className = `scenario-card ${scenario.type}`;
+      cardElement.setAttribute("aria-label", `Scenario card: ${scenario.cableLabel}`);
+
+      cardElement.innerHTML = `
+        <h3 class="card-title">Fluorescent Light + Cable Scenario</h3>
+        <div class="fixture-wrap">
+          <div class="fixture-label">EMI Source</div>
+          <div class="fixture"></div>
+          <div class="emi-wave w1"></div>
+          <div class="emi-wave w2"></div>
+          <div class="emi-wave w3"></div>
+        </div>
+        <div class="cable-row">
+          <div class="cable-label">${scenario.cableLabel}</div>
+          <div class="cable-line"></div>
+          <span class="badge">${scenario.badgeText}</span>
+        </div>
+      `;
+
+      cardStage.appendChild(cardElement);
+      setupCardPosition();
+      wireCardInteraction();
+    }
+
+    function setupCardPosition() {
+      const stageRect = cardStage.getBoundingClientRect();
+      const cardRect = cardElement.getBoundingClientRect();
+      const left = (stageRect.width - cardRect.width) / 2;
+      const top = (stageRect.height - cardRect.height) / 2;
+
+      cardElement.style.position = "absolute";
+      cardElement.style.left = `${left}px`;
+      cardElement.style.top = `${top}px`;
+      cardElement.dataset.homeLeft = String(left);
+      cardElement.dataset.homeTop = String(top);
+      cardElement.dataset.selected = "false";
+    }
+
+    // -----------------------------
+    // drag logic (pointer events + tap fallback)
+    // -----------------------------
+    function wireCardInteraction() {
+      cardElement.onpointerdown = handlePointerDown;
+      cardElement.onclick = handleCardTap;
+
+      dropzones.forEach((zone) => {
+        zone.onclick = () => {
+          if (roundLocked || !selectedForTapPlacement) return;
+          placeCardInZone(zone.dataset.zone, zone);
+        };
+
+        zone.onkeydown = (event) => {
+          if (roundLocked || !selectedForTapPlacement) return;
+          if (event.key === "Enter" || event.key === " ") {
+            event.preventDefault();
+            placeCardInZone(zone.dataset.zone, zone);
+          }
+        };
+      });
+    }
+
+    function handleCardTap(event) {
+      if (roundLocked) return;
+      if (dragState.moved) {
+        dragState.moved = false;
+        return;
+      }
+      selectedForTapPlacement = !selectedForTapPlacement;
+      cardElement.dataset.selected = selectedForTapPlacement ? "true" : "false";
+      cardElement.style.borderColor = selectedForTapPlacement
+        ? "rgba(115, 180, 255, 0.95)"
+        : "rgba(126, 197, 255, 0.38)";
+      feedback.textContent = selectedForTapPlacement
+        ? "Card selected. Tap a drop zone to place it."
+        : "Selection cleared. Drag the card or tap it again.";
+    }
+
+    function handlePointerDown(event) {
+      if (roundLocked) return;
+      selectedForTapPlacement = false;
+      cardElement.dataset.selected = "false";
+      cardElement.style.borderColor = "rgba(126, 197, 255, 0.38)";
+
+      dragState.active = true;
+      dragState.pointerId = event.pointerId;
+      dragState.startX = event.clientX;
+      dragState.startY = event.clientY;
+      dragState.originLeft = parseFloat(cardElement.style.left) || 0;
+      dragState.originTop = parseFloat(cardElement.style.top) || 0;
+      dragState.currentLeft = dragState.originLeft;
+      dragState.currentTop = dragState.originTop;
+      dragState.moved = false;
+
+      cardElement.setPointerCapture(event.pointerId);
+      cardElement.classList.add("dragging");
+
+      window.addEventListener("pointermove", handlePointerMove);
+      window.addEventListener("pointerup", handlePointerUp);
+      window.addEventListener("pointercancel", handlePointerUp);
+    }
+
+    function handlePointerMove(event) {
+      if (!dragState.active || event.pointerId !== dragState.pointerId) return;
+
+      const dx = event.clientX - dragState.startX;
+      const dy = event.clientY - dragState.startY;
+
+      if (Math.abs(dx) > 3 || Math.abs(dy) > 3) {
+        dragState.moved = true;
+      }
+
+      dragState.currentLeft = dragState.originLeft + dx;
+      dragState.currentTop = dragState.originTop + dy;
+
+      cardElement.style.left = `${dragState.currentLeft}px`;
+      cardElement.style.top = `${dragState.currentTop}px`;
+
+      highlightZoneUnderPointer(event.clientX, event.clientY);
+    }
+
+    function handlePointerUp(event) {
+      if (!dragState.active || event.pointerId !== dragState.pointerId) return;
+
+      window.removeEventListener("pointermove", handlePointerMove);
+      window.removeEventListener("pointerup", handlePointerUp);
+      window.removeEventListener("pointercancel", handlePointerUp);
+
+      cardElement.classList.remove("dragging");
+      dragState.active = false;
+
+      const hitZone = getZoneAtPoint(event.clientX, event.clientY);
+      clearHoverStates();
+
+      if (hitZone) {
+        placeCardInZone(hitZone.dataset.zone, hitZone);
+      } else {
+        animateCardHome();
+      }
+
+      if (cardElement.hasPointerCapture(dragState.pointerId)) {
+        cardElement.releasePointerCapture(dragState.pointerId);
+      }
+    }
+
+    function getZoneAtPoint(x, y) {
+      return dropzones.find((zone) => {
+        const rect = zone.getBoundingClientRect();
+        return x >= rect.left && x <= rect.right && y >= rect.top && y <= rect.bottom;
+      });
+    }
+
+    function highlightZoneUnderPointer(x, y) {
+      const zone = getZoneAtPoint(x, y);
+      dropzones.forEach((z) => z.classList.toggle("hover", z === zone));
+    }
+
+    function clearHoverStates() {
+      dropzones.forEach((zone) => zone.classList.remove("hover"));
+    }
+
+    function animateCardHome() {
+      if (!cardElement) return;
+      const homeLeft = parseFloat(cardElement.dataset.homeLeft);
+      const homeTop = parseFloat(cardElement.dataset.homeTop);
+      cardElement.style.transition = "left 0.2s ease, top 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease";
+      cardElement.style.left = `${homeLeft}px`;
+      cardElement.style.top = `${homeTop}px`;
+      setTimeout(() => {
+        if (!cardElement) return;
+        cardElement.style.transition = "transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease";
+      }, 220);
+    }
+
+    // -----------------------------
+    // grading
+    // -----------------------------
+    function placeCardInZone(zoneKey, zoneElement) {
+      if (roundLocked || !cardElement) return;
+
+      roundLocked = true;
+      const scenario = rounds[currentRoundIndex];
+
+      cardElement.classList.add("placed");
+      cardElement.onpointerdown = null;
+      cardElement.onclick = null;
+
+      const zoneRect = zoneElement.getBoundingClientRect();
+      const stageRect = cardStage.getBoundingClientRect();
+      const cardRect = cardElement.getBoundingClientRect();
+
+      const targetLeft = zoneRect.left - stageRect.left + (zoneRect.width - cardRect.width) / 2;
+      const targetTop = zoneRect.top - stageRect.top + (zoneRect.height - cardRect.height) / 2;
+
+      cardElement.style.transition = "left 0.2s ease, top 0.2s ease, transform 0.2s ease";
+      cardElement.style.left = `${targetLeft}px`;
+      cardElement.style.top = `${targetTop}px`;
+      cardElement.style.transform = "scale(0.98)";
+
+      const isCorrect = zoneKey === scenario.correctZone;
+      if (isCorrect) score += 1;
+
+      dropzones.forEach((zone) => {
+        const isSelected = zone === zoneElement;
+        const isRightZone = zone.dataset.zone === scenario.correctZone;
+        zone.classList.toggle("selected", isSelected);
+        zone.classList.toggle("correct", isRightZone);
+        zone.classList.toggle("wrong", isSelected && !isCorrect);
+      });
+
+      feedback.className = `feedback ${isCorrect ? "correct" : "incorrect"}`;
+      feedback.innerHTML = `
+        <strong>${isCorrect ? "Correct!" : "Incorrect"}</strong>
+        ${scenario.explanation}
+      `;
+
+      scoreStatus.textContent = `Score: ${score}`;
+      nextBtn.classList.remove("hidden");
+    }
+
+    function clearZoneStates() {
+      dropzones.forEach((zone) => {
+        zone.classList.remove("hover", "selected", "correct", "wrong");
+      });
+    }
+
+    // -----------------------------
+    // restart logic
+    // -----------------------------
+    function nextRound() {
+      currentRoundIndex += 1;
+      if (currentRoundIndex >= TOTAL_ROUNDS) {
+        showSummary();
+        return;
+      }
+      renderRound();
+    }
+
+    function showSummary() {
+      gameSection.classList.add("hidden");
+      summarySection.classList.remove("hidden");
+      finalScoreText.textContent = `You scored ${score} out of ${TOTAL_ROUNDS}`;
+    }
+
+    function startGame() {
+      score = 0;
+      currentRoundIndex = 0;
+      buildRounds();
+      summarySection.classList.add("hidden");
+      gameSection.classList.remove("hidden");
+      renderRound();
+    }
+
+    nextBtn.addEventListener("click", nextRound);
+    playAgainBtn.addEventListener("click", startGame);
+    window.addEventListener("resize", () => {
+      if (!roundLocked && cardElement) setupCardPosition();
+    });
+
+    startGame();
+  </script>
+</body>
+</html>
